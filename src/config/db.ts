@@ -27,29 +27,8 @@ export async function connectDatabase(): Promise<typeof mongoose> {
     console.log("[Database] Successfully connected to MongoDB.");
     return mongoose;
   } catch (primaryErr: any) {
-    console.warn(`[Database] Primary MongoDB connection failed (${primaryErr.message}).`);
-
-    // In production, strictly require MongoDB Atlas
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(`Production database connection failed: ${primaryErr.message}. Ensure MONGODB_URI is correctly configured.`);
-    }
-
-    // In development mode, dynamically start in-process MongoDB engine via MongoMemoryServer
-    console.log("[Database] Initializing in-process MongoDB instance for local development...");
-    try {
-      const { MongoMemoryServer } = await import("mongodb-memory-server");
-      const mongod = await MongoMemoryServer.create();
-      const memoryUri = mongod.getUri();
-      console.log(`[Database] In-process MongoDB instance ready at: ${memoryUri}`);
-
-      await mongoose.connect(memoryUri);
-      isConnected = true;
-      console.log("[Database] Connected to in-process MongoDB instance.");
-      return mongoose;
-    } catch (memErr: any) {
-      console.error("[Database] Failed to start in-process MongoDB:", memErr.message);
-      throw primaryErr;
-    }
+    console.error(`[Database] MongoDB connection failed: ${primaryErr.message}`);
+    throw new Error(`Database connection failed: ${primaryErr.message}. Ensure MONGODB_URI is correctly configured.`);
   }
 }
 

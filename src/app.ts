@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -27,7 +27,7 @@ app.use(
 
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       // Allow requests with no origin (like mobile apps, curl, or server-to-server)
       if (!origin) return callback(null, true);
       if (
@@ -57,7 +57,7 @@ if (process.env.NODE_ENV !== "test") {
 app.use("/api", routes);
 
 // Welcome / Health root endpoint
-app.get("/", (_req, res) => {
+app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
     name: "UPONTIK REST API",
     status: "online",
@@ -67,7 +67,7 @@ app.get("/", (_req, res) => {
 });
 
 // 404 Handler
-app.use((_req, res) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     error: "API endpoint not found",

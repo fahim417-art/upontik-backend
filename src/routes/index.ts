@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import authRoutes from "./auth.routes.js";
 import categoryRoutes from "./category.routes.js";
 import productRoutes from "./product.routes.js";
@@ -35,7 +35,7 @@ router.get("/account/orders", authenticate, getCustomerOrders);
 router.patch("/account/profile", authenticate, updateProfile);
 
 // Health check endpoint
-router.get("/health", (_req, res) => {
+router.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
 });
 
