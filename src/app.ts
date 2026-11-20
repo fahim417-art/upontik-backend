@@ -53,8 +53,9 @@ if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 
-// Mount REST API
+// Mount REST API both with and without /api prefix to support all reverse proxies & rewrite configurations
 app.use("/api", routes);
+app.use("/", routes);
 
 // Welcome / Health root endpoint
 app.get("/", (_req: Request, res: Response) => {
