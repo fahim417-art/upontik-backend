@@ -37,6 +37,14 @@ async function startServer() {
 
     process.on("SIGINT", shutdown);
     process.on("SIGTERM", shutdown);
+
+    process.on("unhandledRejection", (reason) => {
+      console.error("[Server] Unhandled Rejection:", reason);
+    });
+
+    process.on("uncaughtException", (error) => {
+      console.error("[Server] Uncaught Exception:", error);
+    });
   } catch (error) {
     console.error("[Server] Fatal error on startup:", error);
     process.exit(1);
