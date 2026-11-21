@@ -17,7 +17,13 @@ export async function validateCoupon(req: Request, res: Response): Promise<void>
     return;
   }
 
-  if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
+  const now = new Date();
+  if (coupon.startDate && new Date(coupon.startDate) > now) {
+    res.status(400).json({ success: false, error: "This coupon is not yet active" });
+    return;
+  }
+
+  if (coupon.expiryDate && new Date(coupon.expiryDate) < now) {
     res.status(400).json({ success: false, error: "This coupon code has expired" });
     return;
   }

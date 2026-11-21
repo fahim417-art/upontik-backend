@@ -266,6 +266,38 @@ export async function createCouponAdmin(req: Request, res: Response): Promise<vo
   });
 }
 
+export async function deleteCouponAdmin(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const deleted = await Coupon.findOneAndDelete({
+    $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { code: id.toUpperCase() }],
+  });
+
+  if (!deleted) {
+    res.status(404).json({ success: false, error: "Coupon not found" });
+    return;
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `Coupon ${deleted.code} deleted successfully.`,
+    data: deleted,
+  });
+}
+
+export async function getActivePublicCoupons(_req: Request, res: Response): Promise<void> {
+  const now = new Date();
+  const coupons = await Coupon.find({
+    isActive: true,
+    startDate: { $lte: now },
+    expiryDate: { $gte: now },
+  })
+    .sort({ discountValue: -1 })
+    .select("code discountType discountValue minOrderValue maxDiscount appliesTo productSlugs expiryDate")
+    .lean();
+
+  res.status(200).json({ success: true, data: coupons });
+}
+
 // 8. Store Settings
 export async function updateStoreSettingsAdmin(req: Request, res: Response): Promise<void> {
   let settings = await StoreSetting.findOne();

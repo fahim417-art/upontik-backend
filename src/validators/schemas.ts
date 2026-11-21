@@ -53,7 +53,7 @@ export const ProductSchema = z.object({
   images: z
     .array(
       z.object({
-        url: z.string().url("Valid image URL required"),
+        url: z.string().min(1, "Image data or URL required"),
         alt: z.string().default(""),
         isMain: z.boolean().default(false),
       })
@@ -61,6 +61,8 @@ export const ProductSchema = z.object({
     .min(1, "At least one image is required"),
   price: z.number().min(0, "Price must be non-negative"),
   salePrice: z.number().min(0).optional(),
+  discountPercentage: z.number().min(0).max(100).optional(),
+  isFreeShipping: z.boolean().default(false),
   currency: z.string().default("BDT"),
   stock: z.number().int().min(0).default(0),
   lowStockThreshold: z.number().int().min(0).default(5),
@@ -90,13 +92,16 @@ export const CategorySchema = z.object({
 
 export const CouponSchema = z.object({
   code: z.string().min(2, "Coupon code is required").transform((c) => c.toUpperCase()),
-  discountType: z.enum(["percentage", "fixed"]),
+  discountType: z.enum(["percentage", "fixed"]).default("percentage"),
   discountValue: z.number().min(1, "Discount value must be at least 1"),
   minOrderValue: z.number().min(0).default(0),
   maxDiscount: z.number().min(0).optional(),
+  startDate: z.string().or(z.date()).optional(),
   expiryDate: z.string().or(z.date()),
   usageLimit: z.number().int().optional(),
   isActive: z.boolean().default(true),
+  appliesTo: z.enum(["all", "selective"]).default("all"),
+  productSlugs: z.array(z.string()).optional(),
 });
 
 export const ReviewSchema = z.object({

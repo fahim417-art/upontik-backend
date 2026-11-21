@@ -11,6 +11,8 @@ export interface IStoreSetting extends Document {
   defaultDeliveryChargeInsideDhaka: number;
   defaultDeliveryChargeOutsideDhaka: number;
   freeShippingThreshold: number;
+  isDeliveryFreeStorewide: boolean;
+  freeDeliveryDistricts: string[];
   socialLinks: {
     instagram?: string;
     facebook?: string;
@@ -39,8 +41,10 @@ const StoreSettingSchema = new Schema<IStoreSetting>(
     currency: { type: String, default: "BDT" },
     currencySymbol: { type: String, default: "৳" },
     defaultDeliveryChargeInsideDhaka: { type: Number, default: 80 },
-    defaultDeliveryChargeOutsideDhaka: { type: Number, default: 130 },
+    defaultDeliveryChargeOutsideDhaka: { type: Number, default: 120 },
     freeShippingThreshold: { type: Number, default: 5000 },
+    isDeliveryFreeStorewide: { type: Boolean, default: false },
+    freeDeliveryDistricts: { type: [String], default: [] },
     socialLinks: {
       instagram: { type: String, default: "https://instagram.com/upontik" },
       facebook: { type: String, default: "https://www.facebook.com/share/1CYhYuFu83/" },

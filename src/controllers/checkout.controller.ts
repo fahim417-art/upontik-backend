@@ -139,6 +139,7 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
         quantity: item.quantity,
         selectedVariant: item.selectedVariant || "Standard",
         itemTotal,
+        isFreeShipping: !!product.isFreeShipping,
       });
     }
 
@@ -164,18 +165,32 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
       }
     }
 
-    // 3. Authoritative Delivery Calculation based on District
-    const isInsideDhaka =
-      shippingAddress?.district?.toLowerCase().includes("dhaka") ||
-      shippingAddress?.city?.toLowerCase().includes("dhaka");
+    // 3. Authoritative Delivery Calculation
+    const districtLower = (shippingAddress?.district || "").toLowerCase().trim();
+    const cityLower = (shippingAddress?.city || "").toLowerCase().trim();
+    const isInsideDhaka = districtLower.includes("dhaka") || cityLower.includes("dhaka");
 
-    const freeThreshold = settings?.freeShippingThreshold || 5000;
-    let deliveryCharge =
-      subtotal >= freeThreshold
-        ? 0
-        : isInsideDhaka
-        ? settings?.defaultDeliveryChargeInsideDhaka || 80
-        : settings?.defaultDeliveryChargeOutsideDhaka || 130;
+    // Admin Exemption Checks
+    const isGlobalFree = !!settings?.isDeliveryFreeStorewide;
+    const isDistrictExempt = (settings?.freeDeliveryDistricts || []).some((d: string) => {
+      const clean = d.toLowerCase().trim();
+      return clean && (districtLower.includes(clean) || cityLower.includes(clean));
+    });
+    const hasProductFreeShipping = validatedItems.some((vi) => vi.isFreeShipping);
+
+    let deliveryCharge = 0;
+    if (isGlobalFree || isDistrictExempt || hasProductFreeShipping) {
+      deliveryCharge = 0;
+    } else {
+      const freeThreshold = settings?.freeShippingThreshold || 5000;
+      if (subtotal >= freeThreshold) {
+        deliveryCharge = 0;
+      } else {
+        const rateInside = settings?.defaultDeliveryChargeInsideDhaka ?? 80;
+        const rateOutside = settings?.defaultDeliveryChargeOutsideDhaka ?? 120;
+        deliveryCharge = isInsideDhaka ? rateInside : rateOutside;
+      }
+    }
 
     const total = Math.max(0, subtotal - discount + deliveryCharge);
     const orderNumber = generateOrderNumber();

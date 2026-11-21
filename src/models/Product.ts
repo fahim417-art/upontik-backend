@@ -23,6 +23,8 @@ export interface IProduct extends Document {
   images: IProductImage[];
   price: number;
   salePrice?: number;
+  discountPercentage?: number;
+  isFreeShipping?: boolean;
   currency: string;
   variants?: IProductVariant[];
   stock: number;
@@ -82,6 +84,8 @@ const ProductSchema = new Schema<IProduct>(
     ],
     price: { type: Number, required: true, min: 0 },
     salePrice: { type: Number, min: 0 },
+    discountPercentage: { type: Number, default: 0 },
+    isFreeShipping: { type: Boolean, default: false },
     currency: { type: String, default: "BDT" },
     variants: [
       {

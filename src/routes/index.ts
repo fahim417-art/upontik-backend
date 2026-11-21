@@ -11,6 +11,7 @@ import settingsRoutes from "./settings.routes.js";
 import reviewRoutes from "./review.routes.js";
 import adminRoutes from "./admin.routes.js";
 import newsletterRoutes from "./newsletter.routes.js";
+import chatRoutes from "./chat.routes.js";
 import { authenticate } from "../middleware/auth.js";
 import { getCustomerOrders } from "../controllers/order.controller.js";
 import { updateProfile } from "../controllers/auth.controller.js";
@@ -29,6 +30,7 @@ router.use("/newsletter", newsletterRoutes);
 router.use("/store-settings", settingsRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/admin", adminRoutes);
+router.use("/support", chatRoutes);
 
 // Direct account routes for customer dashboard
 router.get("/account/orders", authenticate, getCustomerOrders);

@@ -15,6 +15,7 @@ import {
   getAllCustomersAdmin,
   getAllCouponsAdmin,
   createCouponAdmin,
+  deleteCouponAdmin,
   updateStoreSettingsAdmin,
 } from "../controllers/admin.controller.js";
 import { getNewsletterSubscribers } from "../controllers/newsletter.controller.js";
@@ -60,6 +61,7 @@ router.get("/customers", getAllCustomersAdmin);
 // Coupons
 router.get("/coupons", getAllCouponsAdmin);
 router.post("/coupons", validate(CouponSchema), createCouponAdmin);
+router.delete("/coupons/:id", deleteCouponAdmin);
 
 // Store Settings
 router.put("/settings", updateStoreSettingsAdmin);

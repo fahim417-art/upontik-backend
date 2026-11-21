@@ -11,6 +11,8 @@ export interface ICoupon extends Document {
   usageLimit?: number;
   usedCount: number;
   isActive: boolean;
+  appliesTo: "all" | "selective";
+  productSlugs?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +30,7 @@ const CouponSchema = new Schema<ICoupon>(
     discountType: {
       type: String,
       enum: ["percentage", "fixed"],
+      default: "percentage",
       required: true,
     },
     discountValue: { type: Number, required: true, min: 1 },
@@ -38,6 +41,8 @@ const CouponSchema = new Schema<ICoupon>(
     usageLimit: { type: Number },
     usedCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true, index: true },
+    appliesTo: { type: String, enum: ["all", "selective"], default: "all" },
+    productSlugs: { type: [String], default: [] },
   },
   { timestamps: true }
 );
