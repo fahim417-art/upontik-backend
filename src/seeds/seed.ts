@@ -83,18 +83,8 @@ export async function runSeed(dropExisting = false): Promise<void> {
     }
   }
 
-  // 3. Coupons
-  const couponCount = await Coupon.countDocuments();
-  if (couponCount === 0 || dropExisting) {
-    console.log("[Seed] Seeding promotional coupons...");
-    for (const c of SEED_COUPONS) {
-      await Coupon.findOneAndUpdate(
-        { code: c.code },
-        { ...c },
-        { upsert: true, new: true }
-      );
-    }
-  }
+  // 3. Coupons (Coupons are fully managed dynamically by the admin; do not auto-seed hardcoded coupons)
+  // SEED_COUPONS auto-seeding disabled to respect admin deletions
 
   // 4. Admin User
   const adminEmail = (process.env.ADMIN_EMAIL || "admin@upontik.com").toLowerCase();

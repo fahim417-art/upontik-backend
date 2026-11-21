@@ -296,9 +296,15 @@ export async function createCouponAdmin(req: Request, res: Response): Promise<vo
 }
 
 export async function deleteCouponAdmin(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const rawId = (req.params.id || "").trim();
+  const isObjectId = mongoose.Types.ObjectId.isValid(rawId);
+
   const deleted = await Coupon.findOneAndDelete({
-    $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { code: id.toUpperCase() }],
+    $or: [
+      ...(isObjectId ? [{ _id: rawId }] : []),
+      { code: rawId.toUpperCase() },
+      { code: rawId },
+    ],
   });
 
   if (!deleted) {

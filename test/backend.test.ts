@@ -69,6 +69,23 @@ describe("UPONTIK REST Backend API Tests", () => {
   });
 
   test("4. Coupon validation properly validates active coupon", async () => {
+    const { Coupon } = await import("../src/models/Coupon.js");
+    await Coupon.findOneAndUpdate(
+      { code: "HERITAGE10" },
+      {
+        code: "HERITAGE10",
+        discountType: "percentage",
+        discountValue: 10,
+        minOrderValue: 2000,
+        maxDiscount: 500,
+        startDate: new Date("2020-01-01"),
+        expiryDate: new Date("2030-01-01"),
+        isActive: true,
+        appliesTo: "all",
+      },
+      { upsert: true, new: true }
+    );
+
     const res = await fetch(`${baseUrl}/api/coupons/validate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -79,6 +96,9 @@ describe("UPONTIK REST Backend API Tests", () => {
     assert.equal(body.success, true);
     assert.equal(body.data.code, "HERITAGE10");
     assert.equal(body.data.discountAmount, 300);
+
+    // Clean up test coupon
+    await Coupon.deleteOne({ code: "HERITAGE10" });
   });
 
   test("5. User registration & login with JWT verification", async () => {
