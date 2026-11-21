@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { AuthenticatedRequest } from "../middleware/auth.js";
 import { Product } from "../models/Product.js";
 import { Category } from "../models/Category.js";
@@ -81,7 +82,18 @@ export async function createProductAdmin(req: Request, res: Response): Promise<v
 
 export async function updateProductAdmin(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const updated = await Product.findByIdAndUpdate(id, req.body, { new: true });
+  const isObjectId = mongoose.Types.ObjectId.isValid(id);
+  const updated = await Product.findOneAndUpdate(
+    {
+      $or: [
+        ...(isObjectId ? [{ _id: id }] : []),
+        { slug: id },
+        { sku: id },
+      ],
+    },
+    req.body,
+    { new: true }
+  );
 
   if (!updated) {
     res.status(404).json({ success: false, error: "Product not found" });
@@ -97,7 +109,14 @@ export async function updateProductAdmin(req: Request, res: Response): Promise<v
 
 export async function deleteProductAdmin(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const deleted = await Product.findByIdAndDelete(id);
+  const isObjectId = mongoose.Types.ObjectId.isValid(id);
+  const deleted = await Product.findOneAndDelete({
+    $or: [
+      ...(isObjectId ? [{ _id: id }] : []),
+      { slug: id },
+      { sku: id },
+    ],
+  });
 
   if (!deleted) {
     res.status(404).json({ success: false, error: "Product not found" });
@@ -134,7 +153,17 @@ export async function createCategoryAdmin(req: Request, res: Response): Promise<
 
 export async function updateCategoryAdmin(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const updated = await Category.findByIdAndUpdate(id, req.body, { new: true });
+  const isObjectId = mongoose.Types.ObjectId.isValid(id);
+  const updated = await Category.findOneAndUpdate(
+    {
+      $or: [
+        ...(isObjectId ? [{ _id: id }] : []),
+        { slug: id },
+      ],
+    },
+    req.body,
+    { new: true }
+  );
 
   if (!updated) {
     res.status(404).json({ success: false, error: "Category not found" });

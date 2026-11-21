@@ -36,12 +36,14 @@ router.get("/dashboard", getDashboardMetrics);
 router.get("/products", getAllProductsAdmin);
 router.post("/products", validate(ProductSchema), createProductAdmin);
 router.put("/products/:id", updateProductAdmin);
+router.patch("/products/:id", updateProductAdmin);
 router.delete("/products/:id", deleteProductAdmin);
 
 // Categories
 router.get("/categories", getAllCategoriesAdmin);
 router.post("/categories", validate(CategorySchema), createCategoryAdmin);
 router.put("/categories/:id", updateCategoryAdmin);
+router.patch("/categories/:id", updateCategoryAdmin);
 
 // Orders
 router.get("/orders", getAllOrdersAdmin);
@@ -65,6 +67,7 @@ router.delete("/coupons/:id", deleteCouponAdmin);
 
 // Store Settings
 router.put("/settings", updateStoreSettingsAdmin);
+router.patch("/settings", updateStoreSettingsAdmin);
 
 // Newsletter Subscribers
 router.get("/newsletter/subscribers", getNewsletterSubscribers);
