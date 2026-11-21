@@ -215,6 +215,15 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
       }
     }
 
+    // Update user phone number on customer profile
+    if (resolvedUserId && customerInformation?.phone) {
+      try {
+        await User.findByIdAndUpdate(resolvedUserId, {
+          $set: { phone: customerInformation.phone },
+        });
+      } catch {}
+    }
+
     // Create Order in MongoDB
     const order = await Order.create({
       orderNumber,
