@@ -2,12 +2,14 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IChatMessage extends Document {
   sessionId: string;
+  customerId?: string;
   sender: "customer" | "admin";
   senderName: string;
   senderEmail?: string;
   senderPhone?: string;
   message: string;
   isRead: boolean;
+  readAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,12 +17,14 @@ export interface IChatMessage extends Document {
 const ChatMessageSchema = new Schema<IChatMessage>(
   {
     sessionId: { type: String, required: true, index: true },
+    customerId: { type: String, index: true },
     sender: { type: String, enum: ["customer", "admin"], required: true },
     senderName: { type: String, default: "Visitor" },
     senderEmail: { type: String, trim: true },
     senderPhone: { type: String, trim: true },
     message: { type: String, required: true, trim: true },
     isRead: { type: Boolean, default: false },
+    readAt: { type: Date },
   },
   { timestamps: true }
 );

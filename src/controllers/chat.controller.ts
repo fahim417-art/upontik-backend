@@ -4,7 +4,7 @@ import { AuthenticatedRequest } from "../middleware/auth.js";
 
 // Customer sends a message
 export async function sendCustomerMessage(req: Request, res: Response): Promise<void> {
-  const { sessionId, message, senderName, senderEmail, senderPhone } = req.body;
+  const { sessionId, customerId, message, senderName, senderEmail, senderPhone } = req.body;
 
   if (!sessionId || !message || !String(message).trim()) {
     res.status(400).json({ success: false, error: "Session ID and message are required." });
@@ -13,6 +13,7 @@ export async function sendCustomerMessage(req: Request, res: Response): Promise<
 
   const chat = await ChatMessage.create({
     sessionId: String(sessionId).trim(),
+    customerId: customerId ? String(customerId).trim() : undefined,
     sender: "customer",
     senderName: senderName?.trim() || "Customer",
     senderEmail: senderEmail?.trim() || undefined,
@@ -40,14 +41,32 @@ export async function getCustomerMessages(req: Request, res: Response): Promise<
   res.status(200).json({ success: true, data: messages });
 }
 
+// Customer marks admin replies as seen
+export async function markCustomerMessagesSeen(req: Request, res: Response): Promise<void> {
+  const { sessionId } = req.body;
+
+  if (!sessionId) {
+    res.status(400).json({ success: false, error: "Session ID required." });
+    return;
+  }
+
+  const now = new Date();
+  await ChatMessage.updateMany(
+    { sessionId: String(sessionId), sender: "admin", isRead: false },
+    { isRead: true, readAt: now }
+  );
+
+  res.status(200).json({ success: true, seenAt: now });
+}
+
 // Admin: Get all conversations grouped by sessionId
 export async function getAdminConversations(_req: AuthenticatedRequest, res: Response): Promise<void> {
-  // Aggregate recent conversations
   const conversations = await ChatMessage.aggregate([
     { $sort: { createdAt: -1 } },
     {
       $group: {
         _id: "$sessionId",
+        customerId: { $first: "$customerId" },
         lastMessage: { $first: "$message" },
         lastSender: { $first: "$sender" },
         lastUpdated: { $first: "$createdAt" },
@@ -76,15 +95,15 @@ export async function getAdminSessionMessages(req: AuthenticatedRequest, res: Re
     .sort({ createdAt: 1 })
     .lean();
 
-  // Mark all customer messages in this session as read
-  await ChatMessage.updateMany({ sessionId, sender: "customer", isRead: false }, { isRead: true });
+  // Mark all customer messages in this session as read by admin
+  await ChatMessage.updateMany({ sessionId, sender: "customer", isRead: false }, { isRead: true, readAt: new Date() });
 
   res.status(200).json({ success: true, data: messages });
 }
 
 // Admin: Reply to customer session
 export async function sendAdminReply(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { sessionId, message } = req.body;
+  const { sessionId, customerId, message } = req.body;
 
   if (!sessionId || !message || !String(message).trim()) {
     res.status(400).json({ success: false, error: "Session ID and reply message required." });
@@ -95,10 +114,11 @@ export async function sendAdminReply(req: AuthenticatedRequest, res: Response): 
 
   const reply = await ChatMessage.create({
     sessionId: String(sessionId).trim(),
+    customerId: customerId ? String(customerId).trim() : undefined,
     sender: "admin",
     senderName: adminName,
     message: String(message).trim(),
-    isRead: true,
+    isRead: false, // Customer has not seen it yet!
   });
 
   res.status(201).json({ success: true, data: reply });

@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   sendCustomerMessage,
   getCustomerMessages,
+  markCustomerMessagesSeen,
   getAdminConversations,
   getAdminSessionMessages,
   sendAdminReply,
@@ -13,6 +14,7 @@ const router = Router();
 // Public customer routes
 router.post("/message", sendCustomerMessage);
 router.get("/messages", getCustomerMessages);
+router.post("/seen", markCustomerMessagesSeen);
 
 // Protected admin support routes
 router.get("/admin/conversations", authenticate, requireAdmin, getAdminConversations);
