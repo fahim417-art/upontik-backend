@@ -6,7 +6,8 @@ import { Coupon } from "../models/Coupon.js";
 import { Order } from "../models/Order.js";
 import { StoreSetting } from "../models/StoreSetting.js";
 import { User } from "../models/User.js";
-import { generateOrderNumber } from "../utils/helpers.js";
+import { generateOrderNumber, hashPassword, comparePassword } from "../utils/helpers.js";
+import { signToken, setAuthCookie } from "../utils/jwt.js";
 
 export async function processCheckout(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
@@ -130,21 +131,94 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
       }
     }
 
-    // 5. Link user if authenticated or if email matches an existing patron account
+    // 5. Enforce Customer ID & User Account
     let resolvedUserId = req.user?.userId;
-    if (!resolvedUserId && customerInformation?.email) {
-      const existingUser = await User.findOne({
-        email: customerInformation.email.toLowerCase().trim(),
-      });
+    let tokenForNewUser: string | undefined = undefined;
+
+    if (!resolvedUserId) {
+      const cleanEmail = customerInformation?.email?.toLowerCase().trim();
+      const existingUser = cleanEmail ? await User.findOne({ email: cleanEmail }) : null;
+
       if (existingUser) {
-        resolvedUserId = String(existingUser._id);
+        if (req.body.accountPassword) {
+          const isMatch = await comparePassword(req.body.accountPassword, existingUser.passwordHash);
+          if (!isMatch) {
+            res.status(401).json({
+              success: false,
+              error: "এই ইমেইলে পূর্বের একটি একাউন্ট রয়েছে। সঠিক পাসওয়ার্ড দিন অথবা সাইন ইন করুন।",
+              code: "INVALID_CREDENTIALS",
+            });
+            return;
+          }
+          resolvedUserId = String(existingUser._id);
+          tokenForNewUser = signToken({
+            userId: String(existingUser._id),
+            email: existingUser.email,
+            role: existingUser.role,
+            name: existingUser.name,
+          });
+          setAuthCookie(res, tokenForNewUser);
+        } else {
+          res.status(401).json({
+            success: false,
+            error: "অর্ডার কনফার্ম করার জন্য কাস্টমার আইডি প্রয়োজন। অনুগ্রহ করে একাউন্ট তৈরি করুন অথবা সাইন-ইন করুন।",
+            code: "CUSTOMER_ACCOUNT_REQUIRED",
+          });
+          return;
+        }
+      } else if (req.body.accountPassword) {
+        // Auto-create brand new Customer ID
+        if (String(req.body.accountPassword).length < 6) {
+          res.status(400).json({
+            success: false,
+            error: "কাস্টমার আইডির পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।",
+          });
+          return;
+        }
+
+        const passwordHash = await hashPassword(req.body.accountPassword);
+        const newUser = await User.create({
+          name: customerInformation.fullName,
+          email: cleanEmail,
+          phone: customerInformation.phone,
+          passwordHash,
+          role: "customer",
+          isEmailVerified: true,
+          addresses: [
+            {
+              fullName: customerInformation.fullName,
+              phone: customerInformation.phone,
+              address: shippingAddress.address,
+              city: shippingAddress.city,
+              district: shippingAddress.district,
+              postalCode: shippingAddress.postalCode,
+              isDefault: true,
+            },
+          ],
+        });
+
+        resolvedUserId = String(newUser._id);
+        tokenForNewUser = signToken({
+          userId: String(newUser._id),
+          email: newUser.email,
+          role: newUser.role,
+          name: newUser.name,
+        });
+        setAuthCookie(res, tokenForNewUser);
+      } else {
+        res.status(401).json({
+          success: false,
+          error: "অর্ডার করার পূর্বে অনুগ্রহ করে কাস্টমার আইডি তৈরি করুন অথবা লগইন করুন।",
+          code: "CUSTOMER_ACCOUNT_REQUIRED",
+        });
+        return;
       }
     }
 
     // Create Order in MongoDB
     const order = await Order.create({
       orderNumber,
-      userId: resolvedUserId || undefined,
+      userId: resolvedUserId,
       customerInformation,
       shippingAddress,
       items: validatedItems,
@@ -178,6 +252,8 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
         deliveryCharge: order.deliveryCharge,
         items: order.items,
         orderStatus: order.orderStatus,
+        customerId: resolvedUserId,
+        token: tokenForNewUser,
       },
     });
   } catch (error: any) {

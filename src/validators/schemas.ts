@@ -27,6 +27,7 @@ export const CheckoutSchema = z.object({
   paymentMethod: z.enum(["cod", "bkash", "nagad", "sslcommerz"]).default("cod"),
   couponCode: z.string().optional(),
   orderNotes: z.string().optional(),
+  accountPassword: z.string().optional(),
   items: z
     .array(
       z.object({
