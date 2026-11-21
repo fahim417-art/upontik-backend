@@ -140,31 +140,18 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
       const existingUser = cleanEmail ? await User.findOne({ email: cleanEmail }) : null;
 
       if (existingUser) {
+        resolvedUserId = String(existingUser._id);
         if (req.body.accountPassword) {
           const isMatch = await comparePassword(req.body.accountPassword, existingUser.passwordHash);
-          if (!isMatch) {
-            res.status(401).json({
-              success: false,
-              error: "এই ইমেইলে পূর্বের একটি একাউন্ট রয়েছে। সঠিক পাসওয়ার্ড দিন অথবা সাইন ইন করুন।",
-              code: "INVALID_CREDENTIALS",
+          if (isMatch) {
+            tokenForNewUser = signToken({
+              userId: String(existingUser._id),
+              email: existingUser.email,
+              role: existingUser.role,
+              name: existingUser.name,
             });
-            return;
+            setAuthCookie(res, tokenForNewUser);
           }
-          resolvedUserId = String(existingUser._id);
-          tokenForNewUser = signToken({
-            userId: String(existingUser._id),
-            email: existingUser.email,
-            role: existingUser.role,
-            name: existingUser.name,
-          });
-          setAuthCookie(res, tokenForNewUser);
-        } else {
-          res.status(401).json({
-            success: false,
-            error: "অর্ডার কনফার্ম করার জন্য কাস্টমার আইডি প্রয়োজন। অনুগ্রহ করে একাউন্ট তৈরি করুন অথবা সাইন-ইন করুন।",
-            code: "CUSTOMER_ACCOUNT_REQUIRED",
-          });
-          return;
         }
       } else if (req.body.accountPassword) {
         // Auto-create brand new Customer ID
