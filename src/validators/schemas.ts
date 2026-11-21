@@ -32,6 +32,10 @@ export const CheckoutSchema = z.object({
     .array(
       z.object({
         productId: z.string().min(1, "Product ID required"),
+        slug: z.string().optional(),
+        sku: z.string().optional(),
+        name: z.string().optional(),
+        productName: z.string().optional(),
         quantity: z.number().int().min(1, "Quantity must be at least 1"),
         selectedVariant: z.string().optional(),
       })

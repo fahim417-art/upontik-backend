@@ -8,6 +8,7 @@ import { StoreSetting } from "../models/StoreSetting.js";
 import { User } from "../models/User.js";
 import { generateOrderNumber, hashPassword, comparePassword } from "../utils/helpers.js";
 import { signToken, setAuthCookie } from "../utils/jwt.js";
+import { SEED_PRODUCTS } from "../seeds/seedData.js";
 
 export async function processCheckout(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
@@ -33,16 +34,78 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
 
     for (const item of items) {
       let product = null;
+
+      // 1. Direct MongoDB ObjectId match
       if (mongoose.Types.ObjectId.isValid(item.productId)) {
         product = await Product.findById(item.productId);
       }
+
+      // 2. Direct slug or SKU match from provided item attributes
       if (!product) {
+        const potentialKeys = [
+          item.productId,
+          item.slug,
+          item.sku,
+        ].filter(Boolean) as string[];
+
         product = await Product.findOne({
-          $or: [{ slug: item.productId }, { sku: item.productId }],
+          $or: [
+            { slug: { $in: potentialKeys } },
+            { sku: { $in: potentialKeys } },
+          ],
         });
       }
 
-      if (!product || product.status !== "published") {
+      // 3. Match against Seed Product Catalog if added from static seed or demo
+      if (!product) {
+        const seedMatch = SEED_PRODUCTS.find(
+          (sp) =>
+            sp.id === item.productId ||
+            sp.slug === item.productId ||
+            (item.slug && sp.slug === item.slug) ||
+            (item.sku && sp.sku === item.sku) ||
+            (item.name && sp.name.toLowerCase() === item.name.toLowerCase()) ||
+            (item.productName && sp.name.toLowerCase() === item.productName.toLowerCase())
+        );
+
+        if (seedMatch) {
+          product = await Product.findOne({
+            $or: [
+              { slug: seedMatch.slug },
+              { sku: seedMatch.sku },
+              { name: seedMatch.name },
+            ],
+          });
+        }
+      }
+
+      // 4. Regex SKU derived from legacy ID pattern: prod_dhol_02 -> UPK-DHOL-002
+      if (!product && typeof item.productId === "string") {
+        const match = item.productId.match(/^prod_([a-z]+)_(\d+)$/i);
+        if (match) {
+          const categoryCode = match[1].toUpperCase();
+          const numCode = match[2].padStart(3, "0");
+          const derivedSku = `UPK-${categoryCode}-${numCode}`;
+          product = await Product.findOne({ sku: derivedSku });
+        }
+      }
+
+      // 5. Name-based match (case-insensitive)
+      if (!product && (item.name || item.productName)) {
+        const searchName = ((item.name || item.productName) as string).trim();
+        product = await Product.findOne({
+          name: { $regex: new RegExp(`^${searchName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+        });
+
+        if (!product) {
+          const prefix = searchName.split(" ").slice(0, 3).join(" ");
+          product = await Product.findOne({
+            name: { $regex: new RegExp(prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") },
+          });
+        }
+      }
+
+      if (!product || (product.status && product.status !== "published")) {
         res.status(404).json({
           success: false,
           error: `A requested product is no longer available in the catalogue.`,
