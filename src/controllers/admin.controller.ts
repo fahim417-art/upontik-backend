@@ -295,6 +295,34 @@ export async function createCouponAdmin(req: Request, res: Response): Promise<vo
   });
 }
 
+export async function updateCouponAdmin(req: Request, res: Response): Promise<void> {
+  const rawId = (req.params.id || "").trim();
+  const isObjectId = mongoose.Types.ObjectId.isValid(rawId);
+
+  const updated = await Coupon.findOneAndUpdate(
+    {
+      $or: [
+        ...(isObjectId ? [{ _id: rawId }] : []),
+        { code: rawId.toUpperCase() },
+        { code: rawId },
+      ],
+    },
+    req.body,
+    { new: true }
+  );
+
+  if (!updated) {
+    res.status(404).json({ success: false, error: "Coupon not found" });
+    return;
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `Coupon ${updated.code} updated.`,
+    data: updated,
+  });
+}
+
 export async function deleteCouponAdmin(req: Request, res: Response): Promise<void> {
   const rawId = (req.params.id || "").trim();
   const isObjectId = mongoose.Types.ObjectId.isValid(rawId);

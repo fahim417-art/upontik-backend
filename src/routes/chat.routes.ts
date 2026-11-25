@@ -6,6 +6,7 @@ import {
   getAdminConversations,
   getAdminSessionMessages,
   sendAdminReply,
+  deleteAdminConversation,
 } from "../controllers/chat.controller.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 
@@ -20,5 +21,6 @@ router.post("/seen", markCustomerMessagesSeen);
 router.get("/admin/conversations", authenticate, requireAdmin, getAdminConversations);
 router.get("/admin/messages/:sessionId", authenticate, requireAdmin, getAdminSessionMessages);
 router.post("/admin/reply", authenticate, requireAdmin, sendAdminReply);
+router.delete("/admin/conversations/:sessionId", authenticate, requireAdmin, deleteAdminConversation);
 
 export default router;

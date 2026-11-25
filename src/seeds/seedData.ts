@@ -461,31 +461,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   },
 ];
 
-export const SEED_COUPONS = [
-  {
-    code: "HERITAGE10",
-    discountType: "percentage" as const,
-    discountValue: 10,
-    minOrderValue: 2000,
-    maxDiscount: 500,
-    startDate: new Date("2026-01-01"),
-    expiryDate: new Date("2027-12-31"),
-    usageLimit: 1000,
-    usedCount: 14,
-    isActive: true,
-  },
-  {
-    code: "WELCOME300",
-    discountType: "fixed" as const,
-    discountValue: 300,
-    minOrderValue: 2500,
-    startDate: new Date("2026-01-01"),
-    expiryDate: new Date("2027-12-31"),
-    usageLimit: 500,
-    usedCount: 28,
-    isActive: true,
-  },
-];
+export const SEED_COUPONS: any[] = [];
 
 export const DEFAULT_HOMEPAGE_CMS = {
   announcementBar: {

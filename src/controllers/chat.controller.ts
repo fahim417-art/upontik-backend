@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { ChatMessage } from "../models/ChatMessage.js";
+import { User } from "../models/User.js";
+import { Order } from "../models/Order.js";
 import { AuthenticatedRequest } from "../middleware/auth.js";
 
 // Customer sends a message
@@ -70,9 +73,21 @@ export async function getAdminConversations(_req: AuthenticatedRequest, res: Res
         lastMessage: { $first: "$message" },
         lastSender: { $first: "$sender" },
         lastUpdated: { $first: "$createdAt" },
-        customerName: { $first: "$senderName" },
-        customerEmail: { $first: "$senderEmail" },
-        customerPhone: { $first: "$senderPhone" },
+        customerNames: {
+          $push: {
+            $cond: [{ $eq: ["$sender", "customer"] }, "$senderName", "$$REMOVE"],
+          },
+        },
+        customerEmails: {
+          $push: {
+            $cond: [{ $eq: ["$sender", "customer"] }, "$senderEmail", "$$REMOVE"],
+          },
+        },
+        customerPhones: {
+          $push: {
+            $cond: [{ $eq: ["$sender", "customer"] }, "$senderPhone", "$$REMOVE"],
+          },
+        },
         unreadCount: {
           $sum: {
             $cond: [{ $and: [{ $eq: ["$sender", "customer"] }, { $eq: ["$isRead", false] }] }, 1, 0],
@@ -84,7 +99,65 @@ export async function getAdminConversations(_req: AuthenticatedRequest, res: Res
     { $sort: { lastUpdated: -1 } },
   ]);
 
-  res.status(200).json({ success: true, data: conversations });
+  // Enrich conversations with real User record & order count so admin name never overwrites customer name
+  const validUserIds = conversations
+    .map((c) => c.customerId || (String(c._id).startsWith("cust_") ? String(c._id).replace("cust_", "") : ""))
+    .filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+  const users = validUserIds.length
+    ? await User.find({ _id: { $in: validUserIds } })
+        .select("name email phone")
+        .lean()
+    : [];
+  const userMap = new Map(users.map((u: any) => [String(u._id), u]));
+
+  const orderCounts = validUserIds.length
+    ? await Order.aggregate([
+        { $match: { userId: { $in: validUserIds.map((id) => new mongoose.Types.ObjectId(id)) } } },
+        { $group: { _id: "$userId", count: { $sum: 1 } } },
+      ])
+    : [];
+  const orderCountMap = new Map(orderCounts.map((o: any) => [String(o._id), o.count]));
+
+  const enriched = conversations.map((c: any) => {
+    const resolvedCustomerId =
+      c.customerId || (String(c._id).startsWith("cust_") ? String(c._id).replace("cust_", "") : "");
+    const userDoc: any = userMap.get(resolvedCustomerId);
+    const firstValidCustName = (c.customerNames || []).find(
+      (n: string) => n && n !== "Customer" && n !== "Visitor"
+    );
+
+    return {
+      _id: c._id,
+      customerId: resolvedCustomerId || undefined,
+      lastMessage: c.lastMessage,
+      lastSender: c.lastSender,
+      lastUpdated: c.lastUpdated,
+      customerName: userDoc?.name || firstValidCustName || (c.customerNames && c.customerNames[0]) || "Patron",
+      customerEmail: userDoc?.email || (c.customerEmails && c.customerEmails[0]) || "",
+      customerPhone: userDoc?.phone || (c.customerPhones && c.customerPhones[0]) || "",
+      orderCount: orderCountMap.get(resolvedCustomerId) || 0,
+      unreadCount: c.unreadCount,
+      totalMessages: c.totalMessages,
+    };
+  });
+
+  res.status(200).json({ success: true, data: enriched });
+}
+
+// Admin: Delete an entire conversation thread
+export async function deleteAdminConversation(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const { sessionId } = req.params;
+  if (!sessionId) {
+    res.status(400).json({ success: false, error: "Session ID is required." });
+    return;
+  }
+
+  const result = await ChatMessage.deleteMany({ sessionId });
+  res.status(200).json({
+    success: true,
+    message: `Conversation deleted (${result.deletedCount} messages removed).`,
+  });
 }
 
 // Admin: Get specific session messages
