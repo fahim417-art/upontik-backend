@@ -306,8 +306,8 @@ const HomepageCMSSchema = new Schema<IHomepageCMS>(
       facebook: { type: String, default: "https://www.facebook.com/share/1CYhYuFu83/" },
       instagram: { type: String, default: "https://instagram.com/upontik" },
       youtube: { type: String, default: "https://youtube.com/@upontik" },
-      whatsapp: { type: String, default: "https://wa.me/8801917720875" },
-      whatsappNumber: { type: String, default: "+8801917720875" },
+      whatsapp: { type: String, default: "https://wa.me/8801981315294" },
+      whatsappNumber: { type: String, default: "+8801981315294" },
       defaultMessage: {
         type: String,
         default: "Hello UPONTIK! I would like to inquire about your handcrafted bag collection.",

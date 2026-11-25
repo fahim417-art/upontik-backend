@@ -255,13 +255,11 @@ export async function getHomepageCMSAdmin(_req: Request, res: Response): Promise
 }
 
 export async function updateHomepageCMSAdmin(req: Request, res: Response): Promise<void> {
-  let cms = await HomepageCMS.findOne();
-  if (!cms) {
-    cms = await HomepageCMS.create(req.body);
-  } else {
-    Object.assign(cms, req.body);
-    await cms.save();
-  }
+  const cms = await HomepageCMS.findOneAndUpdate(
+    {},
+    { $set: req.body },
+    { new: true, upsert: true }
+  );
 
   res.status(200).json({
     success: true,
