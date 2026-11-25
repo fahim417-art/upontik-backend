@@ -15,7 +15,7 @@ export const LoginSchema = z.object({
 export const CheckoutSchema = z.object({
   customerInformation: z.object({
     fullName: z.string().min(2, "Full name is required"),
-    email: z.string().email("Valid email is required"),
+    email: z.string().email("Valid email is required").optional().or(z.literal("")),
     phone: z.string().min(10, "Valid phone number is required (min 10 digits)"),
   }),
   shippingAddress: z.object({
@@ -106,8 +106,10 @@ export const CouponSchema = z.object({
 
 export const ReviewSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
+  orderId: z.string().optional(),
   customerName: z.string().min(2, "Your name is required"),
   rating: z.number().int().min(1).max(5, "Rating must be between 1 and 5"),
-  title: z.string().min(2, "Review title is required"),
-  comment: z.string().min(5, "Review comment must be at least 5 characters"),
+  title: z.string().optional(),
+  comment: z.string().min(3, "Review comment must be at least 3 characters"),
+  images: z.array(z.string()).max(5).optional(),
 });

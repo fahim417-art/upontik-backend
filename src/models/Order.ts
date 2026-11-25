@@ -24,7 +24,7 @@ export interface IOrder extends Document {
   userId?: mongoose.Types.ObjectId;
   customerInformation: {
     fullName: string;
-    email: string;
+    email?: string;
     phone: string;
   };
   shippingAddress: {
@@ -96,7 +96,7 @@ const OrderSchema = new Schema<IOrder>(
     userId: { type: Schema.Types.ObjectId, ref: "User", index: true },
     customerInformation: {
       fullName: { type: String, required: true, trim: true },
-      email: { type: String, required: true, trim: true, lowercase: true },
+      email: { type: String, required: false, default: "", trim: true, lowercase: true },
       phone: { type: String, required: true, trim: true },
     },
     shippingAddress: {

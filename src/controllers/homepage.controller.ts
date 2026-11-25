@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { HomepageCMS } from "../models/HomepageCMS.js";
 import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
+import { Review } from "../models/Review.js";
 import { DEFAULT_HOMEPAGE_CMS } from "../seeds/seedData.js";
 
 export async function getHomepageData(_req: Request, res: Response): Promise<void> {
@@ -16,6 +17,11 @@ export async function getHomepageData(_req: Request, res: Response): Promise<voi
   const categories = await Category.find({ isActive: true }).sort({ displayOrder: 1 }).lean();
   const featuredProducts = await Product.find({ featured: true, status: "published" }).limit(8).lean();
   const newArrivals = await Product.find({ newArrival: true, status: "published" }).limit(8).lean();
+  const reviews = await Review.find({ status: "approved" })
+    .sort({ createdAt: -1 })
+    .limit(6)
+    .populate("productId", "name slug images")
+    .lean();
 
   res.status(200).json({
     success: true,
@@ -24,6 +30,7 @@ export async function getHomepageData(_req: Request, res: Response): Promise<voi
       categories,
       featuredProducts,
       newArrivals,
+      reviews,
     },
   });
 }

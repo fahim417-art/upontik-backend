@@ -15,7 +15,9 @@ export interface IUser extends Document {
   name: string;
   email: string;
   phone?: string;
-  passwordHash: string;
+  passwordHash?: string;
+  googleId?: string;
+  avatar?: string;
   role: "customer" | "admin";
   isEmailVerified: boolean;
   accountStatus: "active" | "suspended";
@@ -48,7 +50,9 @@ const UserSchema = new Schema<IUser>(
       index: true,
     },
     phone: { type: String, trim: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String, required: false },
+    googleId: { type: String, index: true },
+    avatar: { type: String },
     role: {
       type: String,
       enum: ["customer", "admin"],

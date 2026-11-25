@@ -246,7 +246,7 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
 
       if (existingUser) {
         resolvedUserId = String(existingUser._id);
-        if (req.body.accountPassword) {
+        if (req.body.accountPassword && existingUser.passwordHash) {
           const isMatch = await comparePassword(req.body.accountPassword, existingUser.passwordHash);
           if (isMatch) {
             tokenForNewUser = signToken({
@@ -258,8 +258,8 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
             setAuthCookie(res, tokenForNewUser);
           }
         }
-      } else if (req.body.accountPassword) {
-        // Auto-create brand new Customer ID
+      } else if (req.body.accountPassword && cleanEmail) {
+        // Optional: Auto-create Customer ID if password provided
         if (String(req.body.accountPassword).length < 6) {
           res.status(400).json({
             success: false,
@@ -297,14 +297,8 @@ export async function processCheckout(req: AuthenticatedRequest, res: Response):
           name: newUser.name,
         });
         setAuthCookie(res, tokenForNewUser);
-      } else {
-        res.status(401).json({
-          success: false,
-          error: "অর্ডার করার পূর্বে অনুগ্রহ করে কাস্টমার আইডি তৈরি করুন অথবা লগইন করুন।",
-          code: "CUSTOMER_ACCOUNT_REQUIRED",
-        });
-        return;
       }
+      // Otherwise: proceed smoothly as a Guest Order (userId remains undefined until they sign in with Google)
     }
 
     // Update user phone number on customer profile
